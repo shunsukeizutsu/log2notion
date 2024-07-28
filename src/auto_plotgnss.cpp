@@ -8,12 +8,12 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <sys/stat.h>
-//#include "ssm-log.hpp"
 #include "gnss.hpp"
 #include "creatfig.hpp"
 
 #define STRLEN 256
 
+using namespace std;
 static void ctrlC(int aStatus);
 static void setSigInt();
 static void Terminate(void);
@@ -26,10 +26,6 @@ static char path[STRLEN/4] = "/home/haselab17/readdire_test";
 static char log_name[STRLEN / 4] = "rtk_gnss.log";
 static char save_filename[STRLEN / 2] = "rtk_gnss";
 
-
-static char xlabel0[STRLEN / 4] = "X [m]";
-static char ylabel0[STRLEN / 4] = "Y [m]";
-static char zlabel0[STRLEN / 4] = "Z [m]";
 
 static int gShutOff = 0;
 
@@ -47,9 +43,8 @@ int main(int aArgc, char *aArgv[])
         for (const auto &directory : directories_name)
         {
             char fname[STRLEN];
-            sprintf(fname,"/home/haselab17/log2notion/script/plot_gnss.sh %s/%s",path,directory.c_str());
+            sprintf(fname,"/home/izutsu330/log2notion/script/plot_gnss.sh %s/%s",path,directory.c_str());
             int ret = system(fname);
-            //printf("Main: Directory: %s\n", fname);
         }
     }
     catch (std::runtime_error const &error)
@@ -111,50 +106,33 @@ static int printShortHelp(const char *programName)
     printf("\t-p | --path     PATH     : Set path for log file (default=%s)\n", path);
     return EXIT_SUCCESS;
 }
-
 static void Terminate(void)
 {
     printf("\nend\n");
 }
-std::vector<std::string> list_files(const char *path)
+vector<string> list_files(const char *path)
 {
-    std::vector<std::string> directories_name;
-    // 指定されたディレクトリ内のファイル名とディレクトリ名を取得
+    vector<string> directories_name;
     struct dirent *entry;
-    struct stat statbuf;
-    DIR *dp = opendir(path); // 指定されたディレクトリを開く
+
+    DIR *dp = opendir(path);
 
     if (dp == NULL)
     {
-        perror("opendir");
-        return directories_name;
+        fprintf(stderr, "Error! Cannot open %s\n", path);
+        exit(EXIT_FAILURE);
     }
-
+    else
+    {
+        printf("open path\n");
+    }
     while ((entry = readdir(dp)) != NULL)
-    { // 指定されたディレクトリ内のエントリを順番に読み取る
-        char fullpath[1024];
-        snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name);
-
-        if (stat(fullpath, &statbuf) == -1)
+    {
+        if (entry->d_type == DT_DIR)
         {
-            // ファイルまたはディレクトリであるかを判別する
-            perror("stat");
-            continue;
-        }
-
-        if (S_ISDIR(statbuf.st_mode))
-        {
-            // Ignore "." and ".." directories（隠しファイルは無視する）
             if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
                 continue;
             directories_name.push_back(entry->d_name);
-            // printf("Directory: %s\n", fullpath);
-            //  Recursively list files in the sub-directory
-            //  list_files(fullpath);
-        }
-        else
-        {
-            // printf("File: %s\n", fullpath);
         }
     }
     closedir(dp);

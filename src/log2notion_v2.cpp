@@ -1,24 +1,4 @@
-#include <iostream>
-#include <vector>
-#include <string>
-#include <stdio.h>
-#include <signal.h>
-#include <string.h>
-#include <dirent.h>
-#include <stdlib.h>
-#include <getopt.h>
-
-using namespace std;
-static void ctrlC(int aStatus);
-static void setSigInt();
-static void Terminate(void);
-static bool setOption(int aArgc, char *aArgv[]);
-static void printShortHelp(const char *programName);
-vector<string> list_files(const char *path);
-
-static char path[256] = "/home/haselab17/log2notion/log";
-
-static int gShutOff = 0;
+#include "log2notion.hpp"
 
 int main(int aArgc, char *aArgv[])
 {
@@ -30,9 +10,10 @@ int main(int aArgc, char *aArgv[])
         setSigInt();
         vector<string> directories_name = list_files(path);
 
-        for(int i=0;i<directories_name.size();i++)
+        for (int i = 0; i < directories_name.size(); i++)
         {
-            printf("%s\n",directories_name[i].c_str());
+            //printf("%s\n", directories_name[i].c_str());
+            sendHTTPRequest(directories_name[i].c_str());
         }
     }
     catch (std::runtime_error const &error)
@@ -117,11 +98,100 @@ vector<string> list_files(const char *path)
     {
         if (entry->d_type == DT_DIR)
         {
-            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") ==0)
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
                 continue;
             directories_name.push_back(entry->d_name);
         }
     }
     closedir(dp);
     return directories_name;
+}
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    // データを送信する関数の定義
+    size_t totalSize = size * nmemb;
+    memcpy((char *)userp + strlen((char *)userp), (const char *)contents, totalSize);
+    ((char *)userp)[totalSize + strlen((char *)userp)] = '\0'; // Null-terminate the string
+    return totalSize;
+}
+void sendHTTPRequest(const std::string &directory)
+{
+    CURL *curl;
+    CURLcode res;
+    struct curl_slist *headers = NULL;
+    char response[2048] = {0}; // Initialize the response buffer
+    std::string head = directory.substr(0, 4);
+    std::string middle1 = directory.substr(5, 2);
+    std::string middle2 = directory.substr(7, 2);
+    std::string date_num = head + "-" + middle1 + "-" + middle2;
+    // CURLライブラリの初期化
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    // 単一のHTTPリクエスト用のCURLハンドルを初期化
+    curl = curl_easy_init(); // 戻り値はCURL*型ポインタ　正常に初期化＝有効なCURLハンドルを指す。　エラーが発生した場合＝NULLポインタが実行
+    if (curl)
+    {
+        // Set the URL for creating a new page in the database
+        char url[] = "https://api.notion.com/v1/pages";
+
+        // Replace this with the actual property name from your Notion database
+        const char *numberProperty = "numberProperty";
+
+        // Create the JSON payload for the new page
+        char data[1024];
+        snprintf(data, sizeof(data),
+                 "{\"parent\": {\"database_id\": \"%s\"},"
+                 "\"properties\": {"
+                 "\"Name\": {\"title\": [{\"text\": {\"content\": \"%s\"}}]},"
+                 "\"date\": {\"date\": {\"start\": \"%s\",\"end\": null}},"
+                 "\"log_or_memo\": {\"select\": {\"name\": \"log\", \"color\": \"blue\"}}"
+                 "},"
+                 "\"children\": ["
+                 "{\"object\": \"block\","
+                 "\"type\": \"heading_1\","
+                 "\"heading_1\": {\"rich_text\": [{\"type\": \"text\", \"text\": {\"content\": \"RTK-GNSS\", \"link\": null}}],\"is_toggleable\": true}},"
+                 "{\"object\": \"block\","
+                 "\"type\": \"heading_1\","
+                 "\"heading_1\": {\"rich_text\": [{\"type\": \"text\", \"text\": {\"content\": \"IMU\", \"link\": null}}],\"is_toggleable\": true}},"
+                 "{\"object\": \"block\","
+                 "\"type\": \"heading_1\","
+                 "\"heading_1\": {\"rich_text\": [{\"type\": \"text\", \"text\": {\"content\": \"LOCALIZER\", \"link\": null}}],\"is_toggleable\": true}}"
+                 "]"
+                 "}",
+                 DATABASE_ID, directory.c_str(), date_num.c_str());
+        // char *dataに後方の文字列を生成する。サイズはsizeof(data)で決定する。ヌル終端文字が必ずバッファの末尾に追加される。
+
+        // Set the headers
+        // HTTPリクエストのヘッダーにheadersに後方の文字列を追加している。
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+        headers = curl_slist_append(headers, "Notion-Version: 2022-06-28");
+        char authHeader[128];
+        snprintf(authHeader, sizeof(authHeader), "Authorization: Bearer %s", NOTION_API_TOKEN);
+        headers = curl_slist_append(headers, authHeader);
+
+        // Set curl options
+        curl_easy_setopt(curl, CURLOPT_URL, url);                     // HTTPリクエストを送信するURL
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);          // HTTPリクエストのヘッダーを設定
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);             // HTTP POSTリクエストのデータを設定
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback); // サーバーからのレスポンスを処理するために使用されるコールバック関数を設定
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, response);          // 指定したコールバック関数が取得するユーザーデータへのポインタを設定する
+
+        // Perform the request
+        res = curl_easy_perform(curl);
+
+        // Check for errors
+        if (res != CURLE_OK)
+        {
+            fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        }
+        else
+        {
+            printf("%s --> OK\n",directory.c_str());
+            printf("Response from server: %s\n", response);
+        }
+
+        // Cleanup
+        curl_easy_cleanup(curl);
+        curl_slist_free_all(headers);
+    }
+    curl_global_cleanup();
 }
