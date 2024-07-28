@@ -12,15 +12,15 @@
 #include "ssm-log.hpp"
 #include "gnss.hpp"
 
-#define NOTION_API_TOKEN "???????????????????" // NotionAPIトークン
-#define DATABASE_ID "???????????????"                        // データを追加する対象のデータベースID
+#define NOTION_API_TOKEN "secret_eoLMtw9nAQs1mBg1ni6uHh7yjhTKvFY2P4MqcyUSIo5" // NotionAPIトークン
+#define DATABASE_ID "7cfaf84123934dfb8292f4995f72deb9"                        // データを追加する対象のデータベースID
 #define NEWPAGE "test_page1"
 
 static void ctrlC(int aStatus);
 static void setSigInt();
 static void Terminate(void);
 static bool setOption(int aArgc, char *aArgv[]);
-static int printShortHelp(const char *programName);
+static void printShortHelp(const char *programName);
 void sendHTTPRequest(const std::string &directory);
 static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
 std::vector<std::string> list_files(const char *path);

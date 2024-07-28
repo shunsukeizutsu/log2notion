@@ -21,8 +21,8 @@ static bool setOption(int aArgc, char *aArgv[]);
 static int printShortHelp(const char *programName);
 std::vector<std::string> list_files(const char *path);
 
-static char program_path[ STRLEN/5 ] = "/home/shun330/script_log2notion";
-static char path[STRLEN/4] = "/home/shun330/readdire_test";
+static char program_path[ STRLEN/5 ] = "/home/haselab17/script_log2notion";
+static char path[STRLEN/4] = "/home/haselab17/readdire_test";
 static char log_name[STRLEN / 4] = "rtk_gnss.log";
 static char save_filename[STRLEN / 2] = "rtk_gnss";
 
@@ -47,7 +47,7 @@ int main(int aArgc, char *aArgv[])
         for (const auto &directory : directories_name)
         {
             char fname[STRLEN];
-            sprintf(fname,"/home/shun330/log2notion/script/plot_gnss.sh %s/%s",path,directory.c_str());
+            sprintf(fname,"/home/haselab17/log2notion/script/plot_gnss.sh %s/%s",path,directory.c_str());
             int ret = system(fname);
             //printf("Main: Directory: %s\n", fname);
         }

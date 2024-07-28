@@ -82,13 +82,12 @@ static bool setOption(int aArgc, char *aArgv[])
     }
     return true;
 }
-static int printShortHelp(const char *programName)
+static void printShortHelp(const char *programName)
 {
     fputs("HELP\n", stderr);
     fprintf(stderr, "\t$ %s -p %s\n", programName, path);
     fputs("OPTION\n", stderr);
     printf("\t-p | --path     PATH     : Set path for log file (default=%s)\n", path);
-    return EXIT_SUCCESS;
 }
 
 static void Terminate(void)
@@ -219,7 +218,7 @@ void sendHTTPRequest(const std::string &directory)
         else
         {
             printf("%s --> OK\n",directory.c_str());
-            //printf("Response from server: %s\n", response);
+            printf("Response from server: %s\n", response);
         }
 
         // Cleanup

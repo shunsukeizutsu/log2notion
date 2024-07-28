@@ -1,7 +1,7 @@
 #! /bin/bash
 
 CMDNAME=`basename $0`
-program_path=/home/shun330/gnss_plot
+program_path=/home/haselab17/gnss_plot
 cmd_path="$program_path/bin"
 log_path=$1
 
